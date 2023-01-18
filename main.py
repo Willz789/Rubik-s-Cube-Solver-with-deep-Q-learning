@@ -14,7 +14,7 @@ colors = {"black" : (0,0,0), "white" : (255,255,255), "red" : (255,0,0), "green"
 training_model = True
 
 if training_model:
-    training_loop(display_sizes['height'], colors, learning_rate=0.001, gamma=0.99, eps=1, eps_min=0.01, save_data=True, load_data=True, total_start_scrambles=1)
+    training_loop(display_sizes['height'], colors, learning_rate=0.001, gamma=0.99, eps=1, eps_min=0.01, save_data=True, load_data=False, total_start_scrambles=1)
 else:
     pygame.init()
     os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (250,50)
