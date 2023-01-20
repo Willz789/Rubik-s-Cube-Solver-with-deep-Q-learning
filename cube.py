@@ -2,6 +2,7 @@ import pygame, os
 from tools import rotateMatrix
 import numpy as np
 
+# Representation of the 3x3 Rubik's Cube, actions and functions to manipulate it
 class Cube:
     def __init__(self, colors, display_height, n_start_scrambles):
         self.n_start_scrambles = n_start_scrambles
@@ -75,15 +76,15 @@ class Cube:
 
         self.faceDict = {"D": 0, "L": 1, "U": 2, "R": 3, "F": 4, "B": 5}
         
+    # Returns the cube to the initial state
     def reset_cube(self):
         self.gameState = np.copy(self.completed_gameState)
-        #return self.gameState
 
+    # Scrambles the cube
     def start_scramble_cube(self):
         done = True
         moves = []
         prev_move = None
-        #print("Scrambling cube...")
         for i in range(self.n_start_scrambles):
             move = np.random.choice(self.moves)
             if i != 0:
@@ -95,6 +96,7 @@ class Cube:
             self.start_scramble_cube()
         return moves
     
+    # Draws a face of the cube
     def draw_face(self, gameDisplay, x_start, y_start, sticker_colors):
         for i in range(3):
             for j in range(3):
@@ -106,6 +108,7 @@ class Cube:
 
         pygame.draw.rect(gameDisplay, self.colors["black"], pygame.Rect(self.x_start, self.y_start, self.width*3, self.width*3), 1)
 
+    # Draws the cube
     def draw_cube(self, gameDisplay):
         self.draw_face(gameDisplay, self.x_start, self.y_start, list(self.gameState[0][0]) + list(self.gameState[0][1]) + list(self.gameState[0][2]))
         self.draw_face(gameDisplay, self.x_start + 3 * self.width, self.y_start, list(self.gameState[1][0]) + list(self.gameState[1][1]) + list(self.gameState[1][2]))
@@ -114,6 +117,7 @@ class Cube:
         self.draw_face(gameDisplay, self.x_start + 6 * self.width, self.y_start + 3 * self.width, list(self.gameState[4][0]) + list(self.gameState[4][1]) + list(self.gameState[4][2]))
         self.draw_face(gameDisplay, self.x_start + 6 * self.width, self.y_start - 3 * self.width, list(self.gameState[5][0]) + list(self.gameState[5][1]) + list(self.gameState[5][2]))
 
+    # Converts the current state of the cube into one-hot encoding
     def get_onehot_state(self):
         onehot_state = np.zeros((20,24))
         for i in range(len(self.prio_stickers)):
@@ -136,6 +140,7 @@ class Cube:
             onehot_state[i][counter] = 1
         return onehot_state
 
+    # Prints the state of the cube
     def print_current_state(self):
         encoded_state = self.get_onehot_state()
         print(encoded_state, "\n")
@@ -144,6 +149,7 @@ class Cube:
             gameState_int.append(row.index(1))
         print(gameState_int)
 
+    # Checks if the cube is solved
     def checkDone(self):
         encoded_gameState = self.get_onehot_state()
         for i in range(len(encoded_gameState)):
@@ -153,6 +159,7 @@ class Cube:
                 return False
         return True
 
+    # Performs an action on the cube
     def scramble_cube(self, action):
         face = self.faceDict[action[0]]
 

@@ -4,24 +4,26 @@ import pygame, os
 import torch
 import numpy as np
 
+# Updates the game display
 def update_screen():
     cube.draw_cube(gameDisplay)
     pygame.display.flip()
 
+# Cube variables
 display_sizes = {"width" : 700, "height" : 500}
 colors = {"black" : (0,0,0), "white" : (255,255,255), "red" : (255,0,0), "green" : (0,255,0), "blue" : (0,0,255), "yellow" : (255,255,0), "orange" : (255,140,0)}
-
 training_model = True
 
+# Checks if training is on - otherwise displays the cube for the user to manipulate or use the solver
 if training_model:
-    training_loop(display_sizes['height'], colors, learning_rate=0.001, gamma=0.99, eps=1, eps_min=0.02, save_data=True, load_data=False, total_start_scrambles=1)
+    training_loop(display_sizes['height'], colors, learning_rate=0.001, gamma=0.99, eps=1, eps_min=0.02, save_data=True, load_data=False, total_start_scrambles=2)
 else:
     pygame.init()
     os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (250,50)
     gameDisplay = pygame.display.set_mode((display_sizes["width"], display_sizes["height"]))
     gameDisplay.fill(colors["white"])
 
-    pygame.display.set_caption('Rubix')
+    pygame.display.set_caption("Rubik's Cube")
 
     n_start_scrambles = 3
     cube = Cube(colors, display_sizes['height'], n_start_scrambles)

@@ -1,11 +1,10 @@
 from cube import Cube
 import numpy as np
 import torch
-import time
-import matplotlib.pyplot as plt
 
 # Function for saving neural net parameters, epsilon, n_start_scrambles and game_counter
 def t_save(q_net, eps, n_start_scrambles, game_counter, load_data):
+    # Moves the last saved model to backup, if there is a last saved model
     if load_data:
         prev_model = torch.load('SavedData/model.pth', map_location=torch.device('cpu'))
         try:
@@ -29,6 +28,8 @@ def t_save(q_net, eps, n_start_scrambles, game_counter, load_data):
                     if i != len(params)-1:
                         param_string += "\n"
                 f.write(param_string)
+
+    # Saves the new model for the neural network
     try:
         torch.save(q_net.state_dict(), 'SavedData/model.pth')
         print("Saving q_net...")
@@ -60,6 +61,7 @@ def t_load():
                     params[i] = int(params[i])
     return model, params
 
+# Parameters for each scramble complexity
 buffer_size_dict = {1 : 1000, 2 : 2000, 3 : 20000, 4 : 150000}
 batch_size_dict = {1 : 16, 2 : 32, 3 : 128, 4 : 512}
 eps_dec_dict = {1 : 0.0005, 2 : 0.00025, 3 : 0.00005, 4 : 0.000025}
@@ -68,10 +70,12 @@ accuracy_set_sizes_dict = {1 : 50, 2 : 100, 3 : 500, 4 : 750}
 # Main training loop function for the neural net
 def training_loop(display_height, colors, learning_rate, gamma, eps, eps_min, save_data, load_data, total_start_scrambles):
     
+    # Creates the cube
     cube = Cube(colors, display_height, 1)
 
     torch.set_default_dtype(torch.float32)
 
+    # Creates the DNN
     q_net = torch.nn.Sequential(
         torch.nn.Linear(20*24,4096, dtype=torch.float32),
         torch.nn.ReLU(),
@@ -84,6 +88,7 @@ def training_loop(display_height, colors, learning_rate, gamma, eps, eps_min, sa
 
     completed_loaded_games = 0
 
+    # Loads previously saved model and parameters
     if load_data:
         loaded_q_net, params = t_load()
         q_net.load_state_dict(loaded_q_net)
@@ -91,15 +96,18 @@ def training_loop(display_height, colors, learning_rate, gamma, eps, eps_min, sa
         cube.n_start_scrambles = params[1]
         completed_loaded_games = params[2]
 
+    # Loads some parameters
     buffer_size = buffer_size_dict[cube.n_start_scrambles]
     batch_size = batch_size_dict[cube.n_start_scrambles]
     eps_dec = eps_dec_dict[cube.n_start_scrambles]
 
+    # Creates optimizer and loss-function
     optimizer = torch.optim.Adam(q_net.parameters(), lr=learning_rate)
     loss = torch.nn.MSELoss()
 
     action_space = np.arange(12)
 
+    # Creates buffers
     obs_buffer = np.zeros((buffer_size, 20*24))
     obs_next_buffer = np.zeros((buffer_size, 20*24))
     action_buffer = np.zeros(buffer_size)
@@ -108,13 +116,17 @@ def training_loop(display_height, colors, learning_rate, gamma, eps, eps_min, sa
 
     for i in range(cube.n_start_scrambles-1,total_start_scrambles,1):
         step_count = 0 # Counts moves made
-        accuracy_set_size = accuracy_set_sizes_dict[cube.n_start_scrambles] # The size of games it basis the accuracy on
-        j = completed_loaded_games # Counts games playes
+        j = completed_loaded_games # Counts games played
+
+        # To store sample accuracies
+        accuracy_set_size = accuracy_set_sizes_dict[cube.n_start_scrambles]
         accuracy_set = np.array([])
         top_accuracy = 0
         accuracy = 0
         game_counts = []
         accuracies = []
+
+        # Takes actions until it reaches 100% accuracy
         while accuracy < 100 or step_count < buffer_size:
             # Reset game
             cube.reset_cube()
@@ -132,15 +144,16 @@ def training_loop(display_height, colors, learning_rate, gamma, eps, eps_min, sa
 
                 # Action selection
                 if np.random.rand() < eps and move_counter == 1:
-                    random = True # Temporary (used for printing results)
+                    random = True # (used for printing results)
                     action = np.random.choice(action_space)
                 else:
                     if move_counter == 1:
-                        random = False # Temporary (used for printing results)
+                        random = False # (used for printing results)
                     action = np.argmax(q_net(torch.tensor(observation).float()).detach().numpy())
                 # Step environment
                 move = cube.move_dict[action]
                 observation_next, reward, done = cube.scramble_cube(move)
+
                 moves.append(move) # (used for printing results)
 
                 observation_next = observation_next.flatten()
@@ -175,38 +188,33 @@ def training_loop(display_height, colors, learning_rate, gamma, eps, eps_min, sa
                     l.backward()
                     optimizer.step()
                 
-                # Increment step_count
                 step_count += 1
-
-                # Updates the list of games for accuracy-calculation
                 if done: break
             
+            # adds new game to accuracy_set if it wasn't random
             if not random:
               if done:
                 accuracy_set = np.append(accuracy_set, 1)
               else:
                 accuracy_set = np.append(accuracy_set, 0)
-            # Computes and prints the results from each game and accuracy each 100 games
+            # Computes and prints the results from each game and accuracy from each sample
             print(f'done: {done}, start: {start_moves}, moves: {moves}, random: {random}, eps: {eps}, n: {j}')
             j+=1
             if j % accuracy_set_size == 0 and len(accuracy_set) != 0:
                 accuracy = int(round(np.mean(accuracy_set)*100))
                 accuracy_set = np.array([])
-                if accuracy > top_accuracy:
-                    if save_data:
-                        t_save(q_net, eps, cube.n_start_scrambles, j, load_data)
-                    top_accuracy = accuracy
                 accuracies.append(accuracies)
                 game_counts.append(j)
-                print(f'Accuracy: {accuracy}% after {len(accuracies)} epochs')
-                  
-        eps = 1
-        cube.n_start_scrambles += 1
-        print(f'\nIncrementing n_start_scrambles from {cube.n_start_scrambles-1} to {cube.n_start_scrambles}\n')
-        #print(np.mean(accuracy))
-        plt.plot(game_counts, accuracies)
-        plt.xlabel('Games simulated')
-        plt.ylabel('Percentage games solved')
-        plt.title('Performance of neural network after ' + str(j) + ' games simulated')
-        plt.show()
-        time.sleep(1)
+                if accuracy > top_accuracy:
+                    # Saves the current model
+                    if save_data:
+                        t_save(q_net, eps, cube.n_start_scrambles, j, load_data)
+                        load_data = True
+                    top_accuracy = accuracy
+                print(f'Accuracy: {accuracy}% after {len(accuracies)} samples')
+
+        # Resets epsilon and increases scramble complexity
+        if total_start_scrambles > cube.n_start_scrambles:
+            eps = 1
+            cube.n_start_scrambles += 1
+            print(f'\nIncrementing n_start_scrambles from {cube.n_start_scrambles-1} to {cube.n_start_scrambles}\n')
