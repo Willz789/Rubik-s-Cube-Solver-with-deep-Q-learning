@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 # Function for saving neural net parameters, epsilon, n_start_scrambles and game_counter
 def t_save(q_net, eps, n_start_scrambles, game_counter):
-    prev_model = torch.load('SavedData/model.pth')
+    prev_model = torch.load('SavedData/model.pth', map_location=torch.device('cpu'))
     try:
         torch.save(prev_model, 'SavedData/backup_model.pth')
     except PermissionError:
@@ -107,15 +107,14 @@ def training_loop(display_height, colors, learning_rate, gamma, eps, eps_min, sa
 
     for i in range(cube.n_start_scrambles-1,total_start_scrambles,1):
         step_count = 0 # Counts moves made
-        t = time.time()
         accuracy_set_size = accuracy_set_sizes_dict[cube.n_start_scrambles] # The size of games it basis the accuracy on
         j = completed_loaded_games # Counts games playes
         accuracy_set = np.array([])
         top_accuracy = 0
         accuracy = 0
-        new_best_score = False
+        game_counts = []
         accuracies = []
-        while accuracy < 96 or step_count < buffer_size:
+        while accuracy < 100 or step_count < buffer_size:
             # Reset game
             cube.reset_cube()
             start_moves = cube.start_scramble_cube()
@@ -197,14 +196,15 @@ def training_loop(display_height, colors, learning_rate, gamma, eps, eps_min, sa
                         t_save(q_net, eps, cube.n_start_scrambles, j)
                     top_accuracy = accuracy
                 accuracies.append(accuracies)
+                game_counts.append(j)
                 print(f'Accuracy: {accuracy}% after {len(accuracies)} epochs')
                   
         eps = 1
         cube.n_start_scrambles += 1
         print(f'\nIncrementing n_start_scrambles from {cube.n_start_scrambles-1} to {cube.n_start_scrambles}\n')
         #print(np.mean(accuracy))
-        plt.plot([x for x in range(j)], accuracies)
-        plt.xlabel('Epoch')
+        plt.plot(game_counts, accuracies)
+        plt.xlabel('Games simulated')
         plt.ylabel('Percentage games solved')
         plt.title('Performance of neural network after ' + str(j) + ' games simulated')
         plt.show()

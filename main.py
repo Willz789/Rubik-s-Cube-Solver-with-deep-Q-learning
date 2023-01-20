@@ -14,7 +14,7 @@ colors = {"black" : (0,0,0), "white" : (255,255,255), "red" : (255,0,0), "green"
 training_model = True
 
 if training_model:
-    training_loop(display_sizes['height'], colors, learning_rate=0.001, gamma=0.99, eps=1, eps_min=0.01, save_data=True, load_data=False, total_start_scrambles=1)
+    training_loop(display_sizes['height'], colors, learning_rate=0.001, gamma=0.99, eps=1, eps_min=0.02, save_data=True, load_data=False, total_start_scrambles=1)
 else:
     pygame.init()
     os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (250,50)
@@ -35,9 +35,8 @@ else:
         torch.nn.ReLU(),
         torch.nn.Linear(512,12, dtype=torch.float32)
     )
-    loaded_q_net, not_used_params = t_load()
-    q_net.load_state_dict(loaded_q_net)
-    del not_used_params
+    
+    q_net.load_state_dict(torch.load('SavedData/model.pth', map_location=torch.device('cpu')))
 
     update_screen()
 
