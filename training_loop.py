@@ -5,29 +5,30 @@ import time
 import matplotlib.pyplot as plt
 
 # Function for saving neural net parameters, epsilon, n_start_scrambles and game_counter
-def t_save(q_net, eps, n_start_scrambles, game_counter):
-    prev_model = torch.load('SavedData/model.pth', map_location=torch.device('cpu'))
-    try:
-        torch.save(prev_model, 'SavedData/backup_model.pth')
-    except PermissionError:
-        print("\nBackup save failed!")
-    else:
-        with open('SavedData/params.txt', 'r') as f:
-            params = f.readlines()
-            for i in range(len(params)):
-                if i != len(params)-1:
-                    params[i] = params[i][:-1]
-                if i == 0:
-                    params[i] = float(params[i])
-                else:
-                    params[i] = int(params[i])
-        with open('SavedData/backup_params.txt', 'w') as f:
-            param_string = ""
-            for i in range(len(params)):
-                param_string += str(params[i])
-                if i != len(params)-1:
-                    param_string += "\n"
-            f.write(param_string)
+def t_save(q_net, eps, n_start_scrambles, game_counter, load_data):
+    if load_data:
+        prev_model = torch.load('SavedData/model.pth', map_location=torch.device('cpu'))
+        try:
+            torch.save(prev_model, 'SavedData/backup_model.pth')
+        except PermissionError:
+            print("\nBackup save failed!")
+        else:
+            with open('SavedData/params.txt', 'r') as f:
+                params = f.readlines()
+                for i in range(len(params)):
+                    if i != len(params)-1:
+                        params[i] = params[i][:-1]
+                    if i == 0:
+                        params[i] = float(params[i])
+                    else:
+                        params[i] = int(params[i])
+            with open('SavedData/backup_params.txt', 'w') as f:
+                param_string = ""
+                for i in range(len(params)):
+                    param_string += str(params[i])
+                    if i != len(params)-1:
+                        param_string += "\n"
+                f.write(param_string)
     try:
         torch.save(q_net.state_dict(), 'SavedData/model.pth')
         print("Saving q_net...")
@@ -193,7 +194,7 @@ def training_loop(display_height, colors, learning_rate, gamma, eps, eps_min, sa
                 accuracy_set = np.array([])
                 if accuracy > top_accuracy:
                     if save_data:
-                        t_save(q_net, eps, cube.n_start_scrambles, j)
+                        t_save(q_net, eps, cube.n_start_scrambles, j, load_data)
                     top_accuracy = accuracy
                 accuracies.append(accuracies)
                 game_counts.append(j)
